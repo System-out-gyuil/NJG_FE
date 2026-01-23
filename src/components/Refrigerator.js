@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { userRefApi } from '../api/userRefApi';
 import { foodApi } from '../api/foodApi';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/config';
 import './Refrigerator.css';
 
 const Refrigerator = () => {
@@ -151,6 +152,44 @@ const Refrigerator = () => {
     return dateString;
   };
 
+  // 유통기한까지 남은 날짜 계산 (D-day 형식)
+  const calculateDaysUntilExpiry = (expDateString) => {
+    if (!expDateString) return '-';
+    
+    try {
+      const expDate = new Date(expDateString);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      expDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = expDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) {
+        return `D+${Math.abs(diffDays)}`;
+      } else if (diffDays === 0) {
+        return 'D-day';
+      } else {
+        return `D-${diffDays}`;
+      }
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  // 이미지 URL 생성
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    
+    // 이미 전체 URL인 경우
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    // 상대 경로인 경우 API_BASE_URL과 결합
+    return `${API_BASE_URL}${imageUrl}`;
+  };
+
   return (
     <div className="refrigerator">
       <h1>냉장고</h1>
@@ -262,33 +301,57 @@ const Refrigerator = () => {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>음식 종류</th>
+                <th>이미지</th>
                 <th>음식 이름</th>
+                <th>음식 종류</th>
                 <th>수량(용량)</th>
                 <th>단위</th>
                 <th>유통기한</th>
+                <th>남은 기한</th>
                 <th>작업</th>
               </tr>
             </thead>
             <tbody>
-              {userRefs.map((userRef) => (
-                <tr key={userRef.id}>
-                  <td>{userRef.id}</td>
-                  <td>{userRef.food?.foodType || '-'}</td>
-                  <td>{userRef.food?.foodName || '-'}</td>
-                  <td>{userRef.quantity || '-'}</td>
-                  <td>{userRef.unit || '-'}</td>
-                  <td>{formatDate(userRef.exp_date)}</td>
-                  <td>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(userRef.id)}
-                    >
-                      삭제
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {userRefs.map((userRef) => {
+                const imageUrl = getImageUrl(userRef.food?.foodImageUrl);
+                const daysUntilExpiry = calculateDaysUntilExpiry(userRef.exp_date);
+                
+                return (
+                  <tr key={userRef.id}>
+                    <td>{userRef.id}</td>
+                    <td>
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={userRef.food?.foodName || '음식 이미지'} 
+                          className="food-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <span className="no-image">-</span>
+                      )}
+                    </td>
+                    <td>{userRef.food?.foodName || '-'}</td>
+                    <td>{userRef.food?.foodType || '-'}</td>
+                    <td>{userRef.quantity || '-'}</td>
+                    <td>{userRef.unit || '-'}</td>
+                    <td>{formatDate(userRef.exp_date)}</td>
+                    <td className={daysUntilExpiry.startsWith('D+') ? 'expired' : daysUntilExpiry === 'D-day' ? 'expiring-today' : ''}>
+                      {daysUntilExpiry}
+                    </td>
+                    <td>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(userRef.id)}
+                      >
+                        삭제
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

@@ -160,6 +160,29 @@ table tr:hover {
   background-color: #da190b;
 }
 
+.food-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.no-image {
+  color: #999;
+  font-size: 12px;
+}
+
+.expired {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.expiring-today {
+  color: #ff9800;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .refrigerator {
     padding: 10px;
