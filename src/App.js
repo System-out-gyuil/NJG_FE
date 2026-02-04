@@ -30,6 +30,16 @@ const AppContent = () => {
 
   return (
     <div className="App">
+      
+      
+      <Routes>
+        <Route path="/" element={<Navigate to="/refrigerator" replace />} />
+        <Route path="/refrigerator" element={<Refrigerator />} />
+        <Route path="/recipes" element={<RecipeList />} />
+        <Route path="/recipes/:rcpSeq" element={<RecipeDetail />} />
+        <Route path="/users" element={<UserManagement />} />
+        <Route path="/foods" element={<FoodManagement />} />
+      </Routes>
       <nav className="main-nav">
         <div className="nav-left">
           <button
@@ -44,7 +54,7 @@ const AppContent = () => {
           >
             레시피
           </button>
-          <button
+          {/* <button
             className={isActive('/users') ? 'active' : ''}
             onClick={() => navigate('/users')}
           >
@@ -55,24 +65,15 @@ const AppContent = () => {
             onClick={() => navigate('/foods')}
           >
             음식 관리
-          </button>
+          </button> */}
         </div>
-        <div className="nav-right">
+        {/* <div className="nav-right">
           <span className="user-info">{user?.name || user?.email}님</span>
           <button className="logout-btn" onClick={logout}>
             로그아웃
           </button>
-        </div>
+        </div> */}
       </nav>
-      
-      <Routes>
-        <Route path="/" element={<Navigate to="/refrigerator" replace />} />
-        <Route path="/refrigerator" element={<Refrigerator />} />
-        <Route path="/recipes" element={<RecipeList />} />
-        <Route path="/recipes/:rcpSeq" element={<RecipeDetail />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/foods" element={<FoodManagement />} />
-      </Routes>
     </div>
   );
 };

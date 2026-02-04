@@ -191,16 +191,27 @@
 
 @media (max-width: 768px) {
   .recipe-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
   }
 
   .search-form {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   .search-input {
-    max-width: 100%;
+    flex: 1;
+    min-width: 150px;
+    max-width: calc(100% - 160px);
+  }
+
+  .search-button,
+  .reset-button {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    white-space: nowrap;
   }
 }
 

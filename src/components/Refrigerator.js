@@ -12,6 +12,10 @@ const Refrigerator = () => {
   const [foodTypes, setFoodTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedUserRef, setSelectedUserRef] = useState(null);
+  const [selectedTab, setSelectedTab] = useState('전체');
   
   const [formData, setFormData] = useState({
     foodType: '',
@@ -102,6 +106,30 @@ const Refrigerator = () => {
     });
   };
 
+  // 모달 열기
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  // 모달 닫기
+  const closeModal = () => {
+    setIsModalOpen(false);
+    resetForm();
+    setError(null);
+  };
+
+  // 상세 정보 모달 열기
+  const openDetailModal = (userRef) => {
+    setSelectedUserRef(userRef);
+    setIsDetailModalOpen(true);
+  };
+
+  // 상세 정보 모달 닫기
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedUserRef(null);
+  };
+
   // 냉장고에 음식 추가
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -120,6 +148,7 @@ const Refrigerator = () => {
         formData.expDate
       );
       resetForm();
+      closeModal();
       fetchUserRefs();
     } catch (err) {
       setError(err.message);
@@ -134,6 +163,7 @@ const Refrigerator = () => {
     setError(null);
     try {
       await userRefApi.deleteUserRef(id);
+      closeDetailModal();
       fetchUserRefs();
     } catch (err) {
       setError(err.message);
@@ -190,170 +220,264 @@ const Refrigerator = () => {
     return `${API_BASE_URL}${imageUrl}`;
   };
 
+  // 냉장고에 있는 재료들의 고유한 foodType 추출
+  const getAvailableFoodTypes = () => {
+    const types = userRefs
+      .map(userRef => userRef.food?.foodType)
+      .filter(Boolean)
+      .filter((type, index, self) => self.indexOf(type) === index);
+    return ['전체', ...types];
+  };
+
+  // 선택된 탭에 따라 필터링된 목록 반환
+  const getFilteredUserRefs = () => {
+    if (selectedTab === '전체') {
+      return userRefs;
+    }
+    return userRefs.filter(userRef => userRef.food?.foodType === selectedTab);
+  };
+
   return (
     <div className="refrigerator">
-      <h1>냉장고</h1>
-
-      {error && <div className="error-message">{error}</div>}
-
-      {/* 음식 추가 폼 */}
-      <div className="refrigerator-form">
-        <h2>음식 추가</h2>
-        <form onSubmit={handleAdd}>
-          <div className="form-group">
-            <label>음식 종류 *</label>
-            <select
-              name="foodType"
-              value={formData.foodType}
-              onChange={handleTypeChange}
-              required
-            >
-              <option value="">선택하세요</option>
-              {foodTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {formData.foodType && (
-            <div className="form-group">
-              <label>음식 이름 *</label>
-              <select
-                name="foodId"
-                value={formData.foodId}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">선택하세요</option>
-                {getFoodsBySelectedType().map((food) => (
-                  <option key={food.id} value={food.id}>
-                    {food.foodName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label>수량(용량) *</label>
-            <input
-              type="number"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleInputChange}
-              min="1"
-              step="0.1"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>단위 *</label>
-            <select
-              name="unit"
-              value={formData.unit}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">선택하세요</option>
-              <option value="개">개</option>
-              <option value="g">g</option>
-              <option value="kg">kg</option>
-              <option value="ml">ml</option>
-              <option value="L">L</option>
-              <option value="봉">봉</option>
-              <option value="팩">팩</option>
-              <option value="병">병</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>유통기한 *</label>
-            <input
-              type="date"
-              name="expDate"
-              value={formData.expDate}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit">추가</button>
-            <button type="button" onClick={resetForm}>
-              초기화
-            </button>
-          </div>
-        </form>
+      <div className="refrigerator-header">
+        <h1>냉장고</h1>
+        <button className="add-button" onClick={openModal}>
+          +
+        </button>
       </div>
+
+      {/* 음식 추가 모달 */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>음식 추가</h2>
+              <button className="modal-close" onClick={closeModal}>
+                ×
+              </button>
+            </div>
+            {error && <div className="error-message">{error}</div>}
+            <form onSubmit={handleAdd}>
+              <div className="form-group">
+                <label>음식 종류 *</label>
+                <select
+                  name="foodType"
+                  value={formData.foodType}
+                  onChange={handleTypeChange}
+                  required
+                >
+                  <option value="">선택하세요</option>
+                  {foodTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {formData.foodType && (
+                <div className="form-group">
+                  <label>음식 이름 *</label>
+                  <select
+                    name="foodId"
+                    value={formData.foodId}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">선택하세요</option>
+                    {getFoodsBySelectedType().map((food) => (
+                      <option key={food.id} value={food.id}>
+                        {food.foodName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>수량(용량) *</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  onChange={handleInputChange}
+                  min="1"
+                  step="0.1"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>단위 *</label>
+                <select
+                  name="unit"
+                  value={formData.unit}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="">선택하세요</option>
+                  <option value="개">개</option>
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                  <option value="ml">ml</option>
+                  <option value="L">L</option>
+                  <option value="봉">봉</option>
+                  <option value="팩">팩</option>
+                  <option value="병">병</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>유통기한 *</label>
+                <input
+                  type="date"
+                  name="expDate"
+                  value={formData.expDate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit">추가</button>
+                <button type="button" onClick={resetForm}>
+                  초기화
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 상세 정보 모달 */}
+      {isDetailModalOpen && selectedUserRef && (
+        <div className="modal-overlay" onClick={closeDetailModal}>
+          <div className="modal-content detail-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>상세 정보</h2>
+              <button className="modal-close" onClick={closeDetailModal}>
+                ×
+              </button>
+            </div>
+            <div className="detail-content">
+              <div className="detail-image-section">
+                {getImageUrl(selectedUserRef.food?.foodImageUrl) ? (
+                  <img 
+                    src={getImageUrl(selectedUserRef.food?.foodImageUrl)} 
+                    alt={selectedUserRef.food?.foodName || '음식 이미지'} 
+                    className="detail-food-image"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="no-image-placeholder">이미지 없음</div>
+                )}
+              </div>
+              <div className="detail-info-section">
+                {/* <div className="detail-info-row">
+                  <span className="detail-label">ID:</span>
+                  <span className="detail-value">{selectedUserRef.id}</span>
+                </div> */}
+                <div className="detail-info-row">
+                  <span className="detail-label">음식 이름:</span>
+                  <span className="detail-value">{selectedUserRef.food?.foodName || '-'}</span>
+                </div>
+                <div className="detail-info-row">
+                  <span className="detail-label">음식 종류:</span>
+                  <span className="detail-value">{selectedUserRef.food?.foodType || '-'}</span>
+                </div>
+                <div className="detail-info-row">
+                  <span className="detail-label">수량(용량):</span>
+                  <span className="detail-value">{selectedUserRef.quantity || '-'} {selectedUserRef.unit || '-'}</span>
+                </div>
+                {/* <div className="detail-info-row">
+                  <span className="detail-label">단위:</span>
+                  <span className="detail-value"></span>
+                </div> */}
+                <div className="detail-info-row">
+                  <span className="detail-label">유통기한:</span>
+                  <span className="detail-value">{formatDate(selectedUserRef.exp_date)} 까지</span>
+                </div>
+                <div className="detail-info-row">
+                  <span className="detail-label">남은 기한:</span>
+                  <span className={`detail-value ${calculateDaysUntilExpiry(selectedUserRef.exp_date).startsWith('D+') ? 'expired' : calculateDaysUntilExpiry(selectedUserRef.exp_date) === 'D-day' ? 'expiring-today' : ''}`}>
+                    {calculateDaysUntilExpiry(selectedUserRef.exp_date)}
+                  </span>
+                </div>
+              </div>
+              <div className="detail-actions">
+                <button
+                  className="delete-btn"
+                  onClick={() => handleDelete(selectedUserRef.id)}
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 탭 메뉴 */}
+      {userRefs.length > 0 && (
+        <div className="refrigerator-tabs">
+          {getAvailableFoodTypes().map((type) => (
+            <button
+              key={type}
+              className={`tab-button ${selectedTab === type ? 'active' : ''}`}
+              onClick={() => setSelectedTab(type)}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 냉장고 목록 */}
       <div className="refrigerator-list">
-        <h2>냉장고 목록</h2>
         {loading ? (
           <div className="loading">로딩 중...</div>
         ) : userRefs.length === 0 ? (
           <div className="empty-message">냉장고가 비어있습니다.</div>
+        ) : getFilteredUserRefs().length === 0 ? (
+          <div className="empty-message">선택한 종류의 재료가 없습니다.</div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>이미지</th>
-                <th>음식 이름</th>
-                <th>음식 종류</th>
-                <th>수량(용량)</th>
-                <th>단위</th>
-                <th>유통기한</th>
-                <th>남은 기한</th>
-                <th>작업</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userRefs.map((userRef) => {
-                const imageUrl = getImageUrl(userRef.food?.foodImageUrl);
-                const daysUntilExpiry = calculateDaysUntilExpiry(userRef.exp_date);
-                
-                return (
-                  <tr key={userRef.id}>
-                    <td>{userRef.id}</td>
-                    <td>
-                      {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt={userRef.food?.foodName || '음식 이미지'} 
-                          className="food-image"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <span className="no-image">-</span>
-                      )}
-                    </td>
-                    <td>{userRef.food?.foodName || '-'}</td>
-                    <td>{userRef.food?.foodType || '-'}</td>
-                    <td>{userRef.quantity || '-'}</td>
-                    <td>{userRef.unit || '-'}</td>
-                    <td>{formatDate(userRef.exp_date)}</td>
-                    <td className={daysUntilExpiry.startsWith('D+') ? 'expired' : daysUntilExpiry === 'D-day' ? 'expiring-today' : ''}>
+          <div className="refrigerator-cards">
+            {getFilteredUserRefs().map((userRef) => {
+              const imageUrl = getImageUrl(userRef.food?.foodImageUrl);
+              const daysUntilExpiry = calculateDaysUntilExpiry(userRef.exp_date);
+              
+              return (
+                <div 
+                  key={userRef.id} 
+                  className="refrigerator-card"
+                  onClick={() => openDetailModal(userRef)}
+                >
+                  <div className="card-image">
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt={userRef.food?.foodName || '음식 이미지'} 
+                        className="card-food-image"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="card-no-image">이미지 없음</div>
+                    )}
+                  </div>
+                  <div className="card-content">
+                    <h3 className="card-food-name">{userRef.food?.foodName || '-'}</h3>
+                    <div className={`card-expiry ${daysUntilExpiry.startsWith('D+') ? 'expired' : daysUntilExpiry === 'D-day' ? 'expiring-today' : ''}`}>
                       {daysUntilExpiry}
-                    </td>
-                    <td>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(userRef.id)}
-                      >
-                        삭제
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
